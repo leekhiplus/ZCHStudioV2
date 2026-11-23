@@ -9,7 +9,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Unzip project
-        run: unzip -q "$(ls ZCHStudioV2*.zip | head -n1)" -d proj
+        run: |
+          # Use exactly one file. Browser re-uploads create names like "ZCHStudioV2 (2).zip",
+          # and "head -n1" would silently pick an old copy.
+          COUNT=$(ls ZCHStudioV2*.zip | wc -l)
+          if [ "$COUNT" -ne 1 ]; then
+            echo "Found $COUNT ZCHStudioV2 zip files. Keep only one ZCHStudioV2 zip in the repo root."
+            ls -la ZCHStudioV2*.zip
+            exit 1
+          fi
+          unzip -q "$(ls ZCHStudioV2*.zip)" -d proj
+          echo "Built from: $(ls ZCHStudioV2*.zip)"
+          grep -q "CardsScreen" proj/app/src/main/java/com/zch/studio/MainActivity.kt && echo "Phase 1 code found" || { echo "Old skeleton zip, aborting"; exit 1; }
       - uses: actions/setup-java@v5
         with:
           distribution: temurin
